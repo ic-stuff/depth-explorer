@@ -1,5 +1,5 @@
 import { ChunkedSet } from "~/lib/chunked-set";
-import { nealCase } from "~/lib/nealcase";
+import { nealCase, type NealCasedString } from "~/lib/nealcase";
 import type { CombString } from "~/types";
 
 // Elements the bot combines everything with
@@ -272,7 +272,11 @@ function loadRecipes() {
 // });
 
 (async () => {
-  const browser = await chromium.launch({ headless: false, timeout: 12 * 1000  }); // false for debugging
+  const browser = await chromium.launch({
+    // false for debugging
+    headless: false,
+    timeout: 8 * 1000,
+  });
   const page = await browser.newPage();
 
   await page.goto("https://neal.fun/infinite-craft", {
@@ -295,7 +299,7 @@ function loadRecipes() {
       totalSeeds = depthLists[depth]!.size;
 
       async function worker(
-        seedGen: Generator<string, void, unknown>
+        seedGen: Generator<string, void, unknown>,
       ): Promise<void> {
         for (const seed of seedGen) {
           const seedAsArray = seed ? seed.split("=") : [];
@@ -312,7 +316,7 @@ function loadRecipes() {
             for (let j = i; j < combElements.length; j++) {
               const combination = getSortedRecipe(
                 seedAsArray[i]!,
-                combElements[j]!
+                combElements[j]!,
               );
               const combString = `${combination[0]}=${combination[1]}` as const;
 
@@ -332,7 +336,10 @@ function loadRecipes() {
           }
 
           for (const result of allResults) {
-            if (seedAsArray.includes(result) || fullBaseSet.has(result)) {
+            if (
+              seedAsArray.includes(result) ||
+              (<Set<NealCasedString | string>>fullBaseSet).has(result)
+            ) {
               continue;
             }
 
@@ -342,7 +349,7 @@ function loadRecipes() {
 
             if (tempElements.length > 0) {
               const tempResults = await processCombinations(
-                tempElements.map((x) => [x, result])
+                tempElements.map((x) => [x, result]),
               );
               for (const tempResult of tempResults) {
                 addToEncounteredElements(tempResult, [
@@ -386,7 +393,7 @@ function loadRecipes() {
         "->",
         depthLists[depth + 1]!.size,
         "\nElements:",
-        encounteredElements.size
+        encounteredElements.size,
       );
     }
 
@@ -422,8 +429,8 @@ function loadRecipes() {
             encounteredElements.get(element)!,
             `${element} Lineage` as const,
             precomputedRecipesRes,
-            recipesRes
-          )
+            recipesRes,
+          ),
         );
     }
   }
@@ -438,7 +445,7 @@ function loadRecipes() {
       totalSeeds,
       "seeds processed -",
       Math.round((processedSeeds / totalSeeds) * 100 * 100) / 100,
-      "%"
+      "%",
     );
   }
 
@@ -447,7 +454,7 @@ function loadRecipes() {
     if (first.length > 30 || second.length > 30) return "Nothing";
     const waitingDelay = Math.max(
       0,
-      config.combineTimeMs - (Date.now() - lastCombination)
+      config.combineTimeMs - (Date.now() - lastCombination),
     );
     lastCombination = Date.now() + waitingDelay;
     await delay(waitingDelay);
@@ -461,7 +468,7 @@ function loadRecipes() {
 
     for (let attempt = 0; attempt < config.combineRetries; attempt++) {
       const url = `/api/infinite-craft/pair?first=${encodeURIComponent(
-        first
+        first,
       )}&second=${encodeURIComponent(second)}`;
 
       const response = (async () => {
@@ -520,11 +527,11 @@ function loadRecipes() {
   }
 
   async function processCombinations(
-    combinations: [string, string][]
+    combinations: [string, string][],
   ): Promise<Set<string>> {
     const results = new Set<string>();
     const sortedCombinations = combinations.map(([first, second]) =>
-      getSortedRecipe(first, second)
+      getSortedRecipe(first, second),
     );
 
     for (const recipe of sortedCombinations) {
