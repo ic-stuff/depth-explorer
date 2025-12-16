@@ -3,32 +3,32 @@
  */
 
 class ChunkedSet<T extends unknown = unknown> {
-  chunkSize: number;
-  chunks: Set<T>[];
+  readonly #chunkSize: number;
+  readonly #chunks: Set<T>[];
 
   constructor(chunkSize = 2 ** 24) {
-    this.chunkSize = chunkSize; // Max number of items in one chunk
-    this.chunks = [new Set()]; // Array of sets (chunks)
+    this.#chunkSize = chunkSize; // Max number of items in one chunk
+    this.#chunks = [new Set()]; // Array of sets (chunks)
   }
 
   add(value: T): void {
     if (this.has(value)) return;
-    if (this.chunks[this.chunks.length - 1]!.size >= this.chunkSize) {
-      this.chunks.push(new Set());
+    if (this.#chunks[this.#chunks.length - 1]!.size >= this.#chunkSize) {
+      this.#chunks.push(new Set());
     }
-    this.chunks[this.chunks.length - 1]!.add(value);
+    this.#chunks[this.#chunks.length - 1]!.add(value);
   }
 
   has(value: T): boolean {
-    return this.chunks.some((chunk) => chunk.has(value));
+    return this.#chunks.some((chunk) => chunk.has(value));
   }
 
   get size(): number {
-    return this.chunks.reduce((total, chunk) => total + chunk.size, 0);
+    return this.#chunks.reduce((total, chunk) => total + chunk.size, 0);
   }
 
   *values(): Generator<T, void, unknown> {
-    for (const chunk of this.chunks) {
+    for (const chunk of this.#chunks) {
       yield* chunk;
     }
   }

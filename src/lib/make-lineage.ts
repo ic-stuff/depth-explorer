@@ -9,18 +9,18 @@ export function makeLineage(
   lineages: string[][],
   element: string,
   precomputedRecipesRes: Map<string, SortedRecipe[]>,
-  recipesRes: Map<string, Set<`${NealCasedString}=${NealCasedString}`>>
+  recipesRes: Map<string, Set<`${NealCasedString}=${NealCasedString}`>>,
 ) {
   return [
-    lineages[0]!.length,
+    lineages[0]?.length,
     `- ${element}:`,
     lineages
       .map((lineage) =>
         generateLineageFromResults(lineage, precomputedRecipesRes, recipesRes)
           .map(
-            (recipe) => `\n${recipe[0]} + ${recipe[1]} = ${recipe[2]}` as const
+            (recipe) => `\n${recipe[0]} + ${recipe[1]} = ${recipe[2]}` as const,
           )
-          .join("")
+          .join(""),
       )
       .join("\n ..."),
   ] as const;

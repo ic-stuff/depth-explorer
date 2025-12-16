@@ -3,18 +3,18 @@ import { nealCase, type NealCasedString } from "~/lib/nealcase";
 // Settings
 const config = {
   combineTimeMs: 510, // ms
-  combineRetries: 3, // Maximum retries for a failed combination
+  // Maximum retries for a failed combination
+  combineRetries: 3,
   combineLogs: true,
 
   stopAfterDepth: 4,
-  parallelBots: 10, // Number of concurrent workers (probably dont modify this)
+  // Number of concurrent workers (probably dont modify this)
+  parallelBots: 10,
 } as const;
 
 const printProgressEvery = { time: 300 * 1000, elements: 1000 } as const;
 
-export const baseElements = [
-  "Apple",
-].map(nealCase);
+export const baseElements = ["Apple"].map(nealCase);
 
 const baseBaseElements = [
   "Fire",

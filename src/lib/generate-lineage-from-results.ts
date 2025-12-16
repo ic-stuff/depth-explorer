@@ -6,10 +6,10 @@ export function generateLineageFromResults(
   results: string[],
   precomputedRecipesRes: Map<string, SortedRecipe[]>,
   recipesRes: Map<string, Set<`${NealCasedString}=${NealCasedString}`>>,
-  allowBaseElements = true
+  allowBaseElements = true,
 ) {
   const toUse = new Set<NealCasedString>(
-    allowBaseElements ? fullBaseSet : baseBaseElements
+    allowBaseElements ? fullBaseSet : baseBaseElements,
   );
   const toAdd = new Set(results);
   let recipe = [];
@@ -24,7 +24,7 @@ export function generateLineageFromResults(
       const sortedrecipes: SortedRecipe[] =
         precomputedRecipesRes.get(result) ||
         Array.from(recipesRes.get(result)!).map(
-          (x) => x.split("=") as SortedRecipe
+          (x) => x.split("=") as SortedRecipe,
         );
 
       const validRecipe = sortedrecipes.find(
@@ -33,13 +33,14 @@ export function generateLineageFromResults(
           toUse.has(second) &&
           (!correctCaseMap.has(first) ||
             correctCaseMap.get(first) !== result) &&
-          (!correctCaseMap.has(second) || correctCaseMap.get(second) !== result)
+          (!correctCaseMap.has(second) ||
+            correctCaseMap.get(second) !== result),
       );
 
       if (validRecipe) {
         recipe.push([
           ...validRecipe.map((x) =>
-            correctCaseMap.has(x) ? correctCaseMap.get(x) : x
+            correctCaseMap.has(x) ? correctCaseMap.get(x) : x,
           ),
           result,
         ] as const);
@@ -51,7 +52,7 @@ export function generateLineageFromResults(
       }
     }
     if (!addedSmth)
-      return [...recipe, ...["could", "not generate", "Lineage"]] as const;
+      return [...recipe, "could", "not generate", "Lineage"] as const;
   }
   return recipe;
 }

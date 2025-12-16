@@ -7,6 +7,8 @@
 
     "paths": { "~/*": ["./src/*"] },
 
+    "types": ["@infinite-craft/dom-types", "@violentmonkey/types", "@types/node"],
+
     "skipLibCheck": true,
 
     // Max strictness

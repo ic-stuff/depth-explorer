@@ -1,20 +1,21 @@
-import type { IC_Container_VUE_CraftApiResponse } from "@infinite-craft/dom-types";
+import type { IC_VUE } from "@infinite-craft/dom-types";
 
 import { baseElements, config, fullBaseSet } from "~/config";
 import { nealCase } from "~/lib/nealcase";
 import { delay } from "~/lib/delay";
-import { getSortedRecipe, type SortedRecipe } from "~/lib/sorted-recipe";
+import {
+  getSortedRecipe,
+  type SortedRecipe,
+  type CombString,
+  splitRecipeString,
+} from "~/lib/sorted-recipe";
 import { makeLineage } from "~/lib/make-lineage";
 import { generateLineageFromResults } from "~/lib/generate-lineage-from-results";
 
-import type { CombString } from "~/types";
-
-declare const unsafeWindow: Window;
-
 let __VUE__ = document.querySelector(".infinite-craft").__vue__;
 
-const emojiMap: Map<string, IC_Container_VUE_CraftApiResponse> = new Map();
-let elementStorageSet: Set<string> = new Set();
+const emojiMap = new Map<string, IC_VUE.CraftApiResponse>();
+let elementStorageSet = new Set<string>();
 
 window.addEventListener("load", async () => {
   while (!unsafeWindow.IC) {
@@ -68,10 +69,10 @@ const endElements = new Set([
 const depthLists = [/* Depth */ new Set(["" /* Seed (starts empty) */])];
 const encounteredElements = new Map<string, string[][]>(); // { element: seeds }
 
-const recipesIng: Record<CombString, string> = GM_getValue("recipesIng", {});
+const recipesIng = GM_getValue<Record<CombString, string>>("recipesIng", {});
 const recipesRes = new Map<string, Set<CombString>>();
 
-const precomputedRecipesRes = new Map(); // optimization for printing all Lineages
+const precomputedRecipesRes = new Map<string, SortedRecipe[]>(); // optimization for printing all Lineages
 
 unsafeWindow.depthExplorer = function () {
   if (startTime === 0) {
@@ -100,12 +101,13 @@ unsafeWindow.depthExplorerTimeSinceStart = function () {
 };
 
 unsafeWindow.depthExplorerLineage = function (element: string) {
-  return encounteredElements.has(element)
+  const encounteredElement = encounteredElements.get(element);
+  return encounteredElement
     ? makeLineage(
-        encounteredElements.get(element),
+        encounteredElement,
         `${element} Lineage`,
         precomputedRecipesRes,
-        recipesRes
+        recipesRes,
       ).join(" ")
     : "This Element has not been made...";
 };
@@ -121,10 +123,10 @@ unsafeWindow.depthExplorerLineages = function () {
       baseElements,
       precomputedRecipesRes,
       recipesRes,
-      false
+      false,
     )
       .map((recipe) => `${recipe[0]} + ${recipe[1]} = ${recipe[2]}`)
-      .join("\n") + `  // ${baseElements.length}`
+      .join("\n") + `  // ${baseElements.length}`,
   );
 
   const genCounts = Array(depth + 1).fill(0);
@@ -138,7 +140,7 @@ unsafeWindow.depthExplorerLineages = function () {
           index + 1
         } - ${count} Elements -> ${runningTotal} Total Elements`;
       })
-      .join("\n")
+      .join("\n"),
   );
 
   content.push(
@@ -147,18 +149,18 @@ unsafeWindow.depthExplorerLineages = function () {
         Array.from(encounteredElements, ([element, seed]) => [
           element,
           seed[0]!.length,
-        ])
+        ]),
       ),
       null,
-      2
-    )
+      2,
+    ),
   );
 
   console.time("Generate Lineages File");
   for (const [result, recipes] of recipesRes.entries()) {
     precomputedRecipesRes.set(
       result,
-      Array.from(recipes).map((x) => x.split("="))
+      Array.from(recipes).map((x) => x.split("=") as SortedRecipe),
     );
   }
 
@@ -166,10 +168,10 @@ unsafeWindow.depthExplorerLineages = function () {
     Array.from(encounteredElements.entries())
       .map(([element, lineage]) =>
         makeLineage(lineage, element, precomputedRecipesRes, recipesRes).join(
-          " "
-        )
+          " ",
+        ),
       )
-      .join("\n\n")
+      .join("\n\n"),
   );
 
   precomputedRecipesRes.clear();
@@ -179,7 +181,7 @@ unsafeWindow.depthExplorerLineages = function () {
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
   a.download = `${baseElements[baseElements.length - 1]} Seed - ${Math.floor(
-    (processedSeeds / totalSeeds) * 100
+    (processedSeeds / totalSeeds) * 100,
   )}p gen ${depth + 1}.txt`;
 
   a.click();
@@ -190,10 +192,13 @@ window.addEventListener("beforeunload", () => {
   GM_setValue("recipesIng", recipesIng);
   console.log("Saved Recipes");
 });
-setInterval(() => {
-  GM_setValue("recipesIng", recipesIng);
-  console.log("Saved Recipes");
-}, 5 * 60 * 1000);
+setInterval(
+  () => {
+    GM_setValue("recipesIng", recipesIng);
+    console.log("Saved Recipes");
+  },
+  5 * 60 * 1000,
+);
 
 let processedSeeds = 0;
 let totalSeeds = 0;
@@ -209,7 +214,7 @@ async function depthExplorer() {
       totalSeeds,
       "seeds processed -",
       Math.round((processedSeeds / totalSeeds) * 100 * 100) / 100,
-      "%"
+      "%",
     );
   }
 
@@ -226,7 +231,7 @@ async function depthExplorer() {
     totalSeeds = depthLists[depth]!.size;
 
     async function worker(
-      seedGen: Generator<string, void, unknown>
+      seedGen: Generator<string, void, unknown>,
     ): Promise<void> {
       for (let seed of seedGen) {
         const seedAsArray = seed === "" ? [] : seed.split("=");
@@ -243,7 +248,7 @@ async function depthExplorer() {
           for (let j = 0; j < combElements.length; j++) {
             const combination = getSortedRecipe(
               combElements[i]!,
-              combElements[j]!
+              combElements[j]!,
             );
             const recExists = recipeExists(combination);
 
@@ -254,7 +259,12 @@ async function depthExplorer() {
         }
 
         for (const result of allResults) {
-          if (seedAsArray.includes(result) || fullBaseSet.has(result)) continue;
+          if (
+            seedAsArray.includes(result) ||
+            (<Set<string>>fullBaseSet).has(result)
+          ) {
+            continue;
+          }
 
           if (encounteredElements.has(result)) {
             if (encounteredElements.get(result)![0]!.length - 1 === depth) {
@@ -279,8 +289,8 @@ async function depthExplorer() {
                   encounteredElements.get(result)!,
                   `${result} Lineage` as const,
                   precomputedRecipesRes,
-                  recipesRes
-                )
+                  recipesRes,
+                ),
               );
             }
           }
@@ -329,7 +339,7 @@ async function depthExplorer() {
       depthLists[depth]!.size,
       "\nElements:",
       encounteredElements.size,
-      encounteredElements
+      encounteredElements,
     );
     if (depth > config.stopAfterDepth - 2) return "Done.";
 
@@ -349,11 +359,11 @@ function allCombinations(array: string[]): SortedRecipe[] {
 }
 
 async function processCombinations(
-  combinations: [string, string][]
+  combinations: [string, string][],
 ): Promise<Set<string>> {
   const results = new Set<string>();
   const sortedCombinations = combinations.map(([first, second]) =>
-    getSortedRecipe(first, second)
+    getSortedRecipe(first, second),
   );
 
   for (const recipe of sortedCombinations) {
@@ -385,7 +395,7 @@ async function combine(recipe: SortedRecipe): Promise<string | undefined> {
   const promise = (async () => {
     const waitingDelay = Math.max(
       0,
-      config.combineTimeMs - (Date.now() - lastCombination)
+      config.combineTimeMs - (Date.now() - lastCombination),
     );
     lastCombination = Date.now() + waitingDelay;
     await delay(waitingDelay);
@@ -460,7 +470,7 @@ function addElementToStorage(elementText: string) {
   const recipesForElement: [number, number][] = [];
 
   for (const recipe of recipesRes.get(element.text)!) {
-    const [first, second] = recipe.split("=") as SortedRecipe;
+    const [first, second] = splitRecipeString(recipe);
     let firstElementId = items.findIndex((x) => x.text === first);
     let secondElementId = items.findIndex((x) => x.text === second);
 

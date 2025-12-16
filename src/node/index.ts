@@ -1,6 +1,5 @@
 import { ChunkedSet } from "~/lib/chunked-set";
 import { nealCase, type NealCasedString } from "~/lib/nealcase";
-import type { CombString } from "~/types";
 
 // Elements the bot combines everything with
 
@@ -28,7 +27,7 @@ const depthLists = [/* Depth */ new ChunkedSet<string>()];
 depthLists[0]!.add("");
 const encounteredElements = new Map<string, string[][]>(); // { element: seeds }
 
-const recipesIng: Record<string, string> = loadRecipes();
+const recipesIng: Record<CombString, string> = loadRecipes();
 
 const recipesRes = new Map<string, Set<CombString>>();
 
@@ -59,7 +58,11 @@ import {
   baseElements,
 } from "~/config";
 import { delay } from "~/lib/delay";
-import { getSortedRecipe, type SortedRecipe } from "~/lib/sorted-recipe";
+import {
+  getSortedRecipe,
+  type CombString,
+  type SortedRecipe,
+} from "~/lib/sorted-recipe";
 import { generateLineageFromResults } from "~/lib/generate-lineage-from-results";
 import { makeLineage } from "~/lib/make-lineage";
 
@@ -85,191 +88,193 @@ function loadRecipes() {
   }
 }
 
-// // Create a REPL instance
-// const replServer = repl.start({ prompt: "> " });
+declare module "node:vm" {
+  interface Context {
+    help: unknown;
+    clearNothings: unknown;
+    lineage: unknown;
+    lineagesFile: unknown;
+    likelyDead: unknown;
+    currentElements: unknown;
+  }
+}
 
-// declare module "node:vm" {
-//   interface Context {
-//     help: unknown;
-//     clearNothings: unknown;
-//     lineage: unknown;
-//     lineagesFile: unknown;
-//     likelyDead: unknown;
-//     currentElements: unknown;
-//   }
-// }
+if (process.env["REPL_SERVER"]) {
+  // Create a REPL instance
+  const replServer = repl.start({ prompt: "> " });
 
-// // Define commands
-// replServer.context.help = () => console.log(replServer.context);
+  // Define commands
+  replServer.context.help = () => console.log(replServer.context);
 
-// replServer.context.clearNothings = (
-//   onlyDead?: boolean,
-//   onlyFromCurrentRun?: boolean
-// ) => {
-//   if (onlyDead === undefined || onlyFromCurrentRun === undefined)
-//     return "function requires 2 Boolean values (onlyDead, onlyFromCurrentRun)";
+  replServer.context.clearNothings = (
+    onlyDead?: boolean,
+    onlyFromCurrentRun?: boolean,
+  ) => {
+    if (onlyDead === undefined || onlyFromCurrentRun === undefined)
+      return "function requires 2 Boolean values (onlyDead, onlyFromCurrentRun)";
 
-//   let count = 0;
-//   for (const key in recipesIng) {
-//     if (
-//       onlyFromCurrentRun &&
-//       !key.split("=").every((x) => !encounteredElements.has(x))
-//     )
-//       continue;
-//     if (
-//       recipesIng[key] === "Nothing" &&
-//       (!onlyDead || key.split("=").some((x) => x !== nealCase(x)))
-//     ) {
-//       delete recipesIng[key]; // Remove the entry
-//       count++;
-//     }
-//   }
-//   return `Removed ${count} recipes with 'Nothing'`;
-// };
+    let count = 0;
+    for (const key in recipesIng) {
+      if (
+        onlyFromCurrentRun &&
+        !key.split("=").every((x) => !encounteredElements.has(x))
+      )
+        continue;
+      if (
+        recipesIng[key] === "Nothing" &&
+        (!onlyDead || key.split("=").some((x) => x !== nealCase(x)))
+      ) {
+        delete recipesIng[key]; // Remove the entry
+        count++;
+      }
+    }
+    return `Removed ${count} recipes with 'Nothing'`;
+  };
 
-// replServer.context.lineage = (element: string) => {
-//   element = nealCase(element);
-//   const message = [];
-//   for (const [elem, seed] of encounteredElements.entries()) {
-//     if (nealCase(elem) === element) {
-//       message.push(
-//         makeLineage(
-//           seed,
-//           `${elem} Lineage`,
-//           precomputedRecipesRes,
-//           recipesRes
-//         ).join(" ")
-//       );
-//     }
-//   }
-//   return message.length > 0
-//     ? message.join("\n\n")
-//     : "This Element has not been made...";
-// };
+  replServer.context.lineage = (element: string) => {
+    element = nealCase(element);
+    const message = [];
+    for (const [elem, seed] of encounteredElements.entries()) {
+      if (nealCase(elem) === element) {
+        message.push(
+          makeLineage(
+            seed,
+            `${elem} Lineage`,
+            precomputedRecipesRes,
+            recipesRes,
+          ).join(" "),
+        );
+      }
+    }
+    return message.length > 0
+      ? message.join("\n\n")
+      : "This Element has not been made...";
+  };
 
-// replServer.context.lineagesFile = () => {
-//   const content: string[] = [];
+  replServer.context.lineagesFile = () => {
+    const content: string[] = [];
 
-//   content.push(
-//     generateLineageFromResults(
-//       baseElements,
-//       precomputedRecipesRes,
-//       recipesRes,
-//       false
-//     )
-//       .map((recipe) => `${recipe[0]} + ${recipe[1]} = ${recipe[2]}`)
-//       .join("\n") + `  // ${baseElements.length}`
-//   );
+    content.push(
+      generateLineageFromResults(
+        baseElements,
+        precomputedRecipesRes,
+        recipesRes,
+        false,
+      )
+        .map((recipe) => `${recipe[0]} + ${recipe[1]} = ${recipe[2]}`)
+        .join("\n") + `  // ${baseElements.length}`,
+    );
 
-//   const genCounts = Array<number>(depth + 1).fill(0);
+    const genCounts = Array<number>(depth + 1).fill(0);
 
-//   encounteredElements.forEach((seeds) => genCounts[seeds[0]!.length - 1]!++);
-//   let runningTotal = 0;
-//   content.push(
-//     genCounts
-//       .map((count, index) => {
-//         runningTotal += genCounts[index]!;
-//         return `Gen ${
-//           index + 1
-//         } - ${count} Elements -> ${runningTotal} Total Elements`;
-//       })
-//       .join("\n")
-//   );
+    encounteredElements.forEach((seeds) => genCounts[seeds[0]!.length - 1]!++);
+    let runningTotal = 0;
+    content.push(
+      genCounts
+        .map((count, index) => {
+          runningTotal += genCounts[index]!;
+          return `Gen ${
+            index + 1
+          } - ${count} Elements -> ${runningTotal} Total Elements`;
+        })
+        .join("\n"),
+    );
 
-//   console.time("Generate Lineages File");
-//   for (const [result, recipes] of recipesRes.entries()) {
-//     precomputedRecipesRes.set(
-//       result,
-//       Array.from(recipes).map((x) => x.split("=") as SortedRecipe)
-//     );
-//   }
+    console.time("Generate Lineages File");
+    for (const [result, recipes] of recipesRes.entries()) {
+      precomputedRecipesRes.set(
+        result,
+        Array.from(recipes).map((x) => x.split("=") as SortedRecipe),
+      );
+    }
 
-//   content.push(
-//     Array.from(encounteredElements.entries())
-//       .map(([element, lineage]) =>
-//         makeLineage(lineage, element, precomputedRecipesRes, recipesRes).join(
-//           " "
-//         )
-//       )
-//       .join("\n\n")
-//   );
+    content.push(
+      Array.from(encounteredElements.entries())
+        .map(([element, lineage]) =>
+          makeLineage(lineage, element, precomputedRecipesRes, recipesRes).join(
+            " ",
+          ),
+        )
+        .join("\n\n"),
+    );
 
-//   precomputedRecipesRes.clear();
-//   console.timeEnd("Generate Lineages File");
+    precomputedRecipesRes.clear();
+    console.timeEnd("Generate Lineages File");
 
-//   content.push(
-//     JSON.stringify(
-//       Object.fromEntries(
-//         Array.from(encounteredElements, ([element, seed]) => [
-//           element,
-//           seed[0]!.length,
-//         ])
-//       ),
-//       null,
-//       2
-//     )
-//   );
+    content.push(
+      JSON.stringify(
+        Object.fromEntries(
+          Array.from(encounteredElements, ([element, seed]) => [
+            element,
+            seed[0]!.length,
+          ]),
+        ),
+        null,
+        2,
+      ),
+    );
 
-//   const filename = `${
-//     baseElements[baseElements.length - 1]
-//   } Seed - ${Math.floor((processedSeeds / totalSeeds) * 100)}% gen ${
-//     depth + 1
-//   }.txt`;
-//   fs.writeFileSync(`./${filename}`, content.join("\n\n\n\n"), "utf8");
-//   return `File saved: ${filename}`;
-// };
+    const filename = `${
+      baseElements[baseElements.length - 1]
+    } Seed - ${Math.floor((processedSeeds / totalSeeds) * 100)}% gen ${
+      depth + 1
+    }.txt`;
+    fs.writeFileSync(`./${filename}`, content.join("\n\n\n\n"), "utf8");
+    return `File saved: ${filename}`;
+  };
 
-// /**
-//  * Prints all elements that have been made in the current run and that haven't been used in any recipe
-//  */
-// replServer.context.likelyDead = () => {
-//   const candidatesSet = new Set<string>(
-//     encounteredElements.keys().filter((x) => x !== nealCase(x))
-//   );
-//   console.log(candidatesSet.size);
+  /**
+   * Prints all elements that have been made in the current run and that haven't been used in any recipe
+   */
+  replServer.context.likelyDead = () => {
+    const candidatesSet = new Set<string>(
+      encounteredElements.keys().filter((x) => x !== nealCase(x)),
+    );
+    console.log(candidatesSet.size);
 
-//   const recipeResSet = new Set();
-//   for (const [element, recipes] of recipesRes) {
-//     if (element === "Nothing") continue;
-//     for (const recipe of recipes) {
-//       recipe.split("=", 2).forEach((x) => recipeResSet.add(x));
-//     }
-//   }
-//   for (const element of candidatesSet) {
-//     if (recipeResSet.has(nealCase(element))) candidatesSet.delete(element);
-//   }
-//   fs.writeFileSync(`./tempOutput.txt`, [...candidatesSet].join("\n"), "utf8");
-//   return `File saved - ${candidatesSet.size} Elements`;
-// };
+    const recipeResSet = new Set();
+    for (const [element, recipes] of recipesRes) {
+      if (element === "Nothing") continue;
+      for (const recipe of recipes) {
+        recipe.split("=", 2).forEach((x) => recipeResSet.add(x));
+      }
+    }
+    for (const element of candidatesSet) {
+      if (recipeResSet.has(nealCase(element))) candidatesSet.delete(element);
+    }
+    fs.writeFileSync(`./tempOutput.txt`, [...candidatesSet].join("\n"), "utf8");
+    return `File saved - ${candidatesSet.size} Elements`;
+  };
 
-// replServer.context.currentElements = () => {
-//   fs.writeFileSync(
-//     `./tempOutput.txt`,
-//     Array.from(encounteredElements.keys()).join("\n"),
-//     "utf8"
-//   );
-//   return `File saved - ${encounteredElements.size} Elements`;
-// };
+  replServer.context.currentElements = () => {
+    fs.writeFileSync(
+      `./tempOutput.txt`,
+      Array.from(encounteredElements.keys()).join("\n"),
+      "utf8",
+    );
+    return `File saved - ${encounteredElements.size} Elements`;
+  };
 
-// // Handle process cleanup on exit or stop
-// function onExit() {
-//   saveRecipes(recipesIng);
-// }
+  // Handle process cleanup on exit or stop
+  function onExit() {
+    saveRecipes(recipesIng);
+  }
 
-// process.on("beforeExit", () => {
-//   onExit();
-// });
+  process.on("beforeExit", () => {
+    onExit();
+  });
 
-// // Listen for termination signals (for Ctrl+C)
-// process.on("SIGINT", () => {
-//   onExit();
-//   process.exit(0); // Exit gracefully
-// });
+  // Listen for termination signals (for Ctrl+C)
+  process.on("SIGINT", () => {
+    onExit();
+    process.exit(0); // Exit gracefully
+  });
 
-// // Handle process exit (e.g., from Shift+F5 in VS Code)
-// process.on("exit", () => {
-//   onExit();
-// });
+  // Handle process exit (e.g., from Shift+F5 in VS Code)
+  process.on("exit", () => {
+    onExit();
+  });
+}
 
 (async () => {
   const browser = await chromium.launch({
@@ -494,11 +499,11 @@ function loadRecipes() {
         }
       })();
 
-      if (response?.shouldContinue) {
+      if (response && "shouldContinue" in response) {
         continue;
       }
 
-      if (response?.ratelimited) {
+      if (response && "ratelimited" in response) {
         throw new Error("rate limited!");
       }
 
