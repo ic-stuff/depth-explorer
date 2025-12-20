@@ -86,7 +86,7 @@ unsafeWindow.depthExplorerClearNothings = function () {
   let count = 0;
   // Iterate through the object keys
   for (const _key in recipesIng) {
-    const key = _key as CombString;
+    const key = <CombString>_key;
     if (recipesIng[key] === "Nothing") {
       delete recipesIng[key]; // Remove the entry
       count++;

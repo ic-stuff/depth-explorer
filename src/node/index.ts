@@ -121,10 +121,10 @@ if (process.env["REPL_SERVER"]) {
       )
         continue;
       if (
-        recipesIng[key] === "Nothing" &&
+        recipesIng[<CombString>key] === "Nothing" &&
         (!onlyDead || key.split("=").some((x) => x !== nealCase(x)))
       ) {
-        delete recipesIng[key]; // Remove the entry
+        delete recipesIng[<CombString>key]; // Remove the entry
         count++;
       }
     }

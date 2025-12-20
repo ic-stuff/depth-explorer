@@ -10,5 +10,5 @@ export function nealCase(input: string): NealCasedString {
       i === 0 || input[i - 1] === " " ? char.toUpperCase() : char.toLowerCase();
   }
 
-  return result as NealCasedString;
+  return <NealCasedString>result;
 }
