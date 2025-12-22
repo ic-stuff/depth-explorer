@@ -4,11 +4,10 @@
   "private": true,
   "scripts": {
     "build": "bunx --bun usts build",
-    "start": "bun --bun src/node"
+    "start": "bun --bun run src/node"
   },
   "dependencies": {
-    "playwright": "^1.57.0",
-    "zod": "^4.2.1"
+    "playwright": "^1.57.0"
   },
   "devDependencies": {
     "@infinite-craft/dom-types": "^0.0.2",
