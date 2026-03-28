@@ -1,16 +1,16 @@
 import type { IC_VUE } from "@infinite-craft/dom-types";
 
-import { baseElements, config, fullBaseSet } from "~/config";
-import { nealCase } from "~/lib/nealcase";
-import { delay } from "~/lib/delay";
+import { baseElements, config, fullBaseSet } from "#config";
+import { nealCase } from "#lib/nealcase";
+import { delay } from "#lib/delay";
 import {
   getSortedRecipe,
   type SortedRecipe,
   type CombString,
   splitRecipeString,
-} from "~/lib/sorted-recipe";
-import { makeLineage } from "~/lib/make-lineage";
-import { generateLineageFromResults } from "~/lib/generate-lineage-from-results";
+} from "#lib/sorted-recipe";
+import { makeLineage } from "#lib/make-lineage";
+import { generateLineageFromResults } from "#lib/generate-lineage-from-results";
 
 let __VUE__ = document.querySelector(".infinite-craft").__vue__;
 

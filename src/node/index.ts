@@ -1,5 +1,5 @@
-import { ChunkedSet } from "~/lib/chunked-set";
-import { nealCase, type NealCasedString } from "~/lib/nealcase";
+import { ChunkedSet } from "#lib/chunked-set";
+import { nealCase, type NealCasedString } from "#lib/nealcase";
 
 // Elements the bot combines everything with
 
@@ -476,7 +476,7 @@ if (process.env["REPL_SERVER"]) {
         first,
       )}&second=${encodeURIComponent(second)}`;
 
-      const response = (async () => {
+      const response = await (async () => {
         try {
           return await page.evaluate(async (url) => {
             const res = await fetch(url);
@@ -487,7 +487,7 @@ if (process.env["REPL_SERVER"]) {
                 throw new Error(`Failed with status: ${res.status}`);
               }
             } else {
-              return res.json() as Promise<{ ___: "___" }>;
+              return res.json() as Promise<{ result?: string }>;
             }
           }, url);
         } catch {
@@ -507,7 +507,7 @@ if (process.env["REPL_SERVER"]) {
         throw new Error("rate limited!");
       }
 
-      const result = (response?.result as string | undefined) || "Nothing";
+      const result = response?.result || "Nothing";
 
       const combString = `${first}=${second}` as const;
       recipesIng[combString] = result;

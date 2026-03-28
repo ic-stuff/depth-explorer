@@ -1,4 +1,4 @@
-import { baseBaseElements, fullBaseSet } from "~/config";
+import { baseBaseElements, fullBaseSet } from "#config";
 import { nealCase, type NealCasedString } from "./nealcase";
 import type { SortedRecipe } from "./sorted-recipe";
 

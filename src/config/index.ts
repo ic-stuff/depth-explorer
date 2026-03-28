@@ -1,4 +1,4 @@
-import { nealCase, type NealCasedString } from "~/lib/nealcase";
+import { nealCase, type NealCasedString } from "#lib/nealcase";
 
 // Settings
 const config = {
